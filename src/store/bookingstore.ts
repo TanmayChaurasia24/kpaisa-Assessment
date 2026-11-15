@@ -1,6 +1,10 @@
 import type { LayoutType } from "../types/layout";
 import type { Passenger } from "../types/passenger";
 
+export const OCCUPIED_SEATS: Record<LayoutType, Set<string>> = {
+    '3-2': new Set(['2C', '4B', '6A', '8E', '10C', '15D', '20B', '25A', '28E', '30C']),
+    '2-3-2': new Set(['1B', '3E', '5A', '7G', '9C', '12F', '15D', '20E', '25B', '30G', '35A', '38C']),
+};
 
 export interface BookingState {
     layoutType: LayoutType;
@@ -32,6 +36,12 @@ export type BookingAction = | {
     payload: number
 } | {
     type: 'SET_ACTIVE_PASSENGER';
+    payload: string
+} | {
+    type: 'ASSIGN_SEAT';
+    payload: string
+} | {
+    type: 'REMOVE_SEAT';
     payload: string
 }
 
@@ -93,6 +103,53 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
                 ...state,
                 activePassengerId: action.payload
             };
+        }
+
+        case 'ASSIGN_SEAT': {
+            const seatId = action.payload;
+            const { activePassengerId, passengers, layoutType } = state;
+
+            if (!activePassengerId) return state;
+
+            if (OCCUPIED_SEATS[layoutType].has(seatId)) return state;
+
+            const takenByOther = passengers.find(
+                (p) => p.assignedSeatId === seatId && p.id !== activePassengerId
+            );
+
+            if (takenByOther) return state;
+
+            const currentPassenger = passengers.find((p) => p.id === activePassengerId);
+            if (currentPassenger?.assignedSeatId === seatId) {
+                return {
+                    ...state,
+                    passengers: passengers.map((p) => p.id === activePassengerId ? {
+                        ...p, assignedSeatId: null
+                    } : p)
+                }
+            }
+
+            return {
+                ...state,
+                passengers: passengers.map((p) => p.id === activePassengerId ? {
+                    ...p, assignedSeatId: seatId
+                } : p)
+            }
+        }
+
+        case 'REMOVE_SEAT': {
+            const passengerId = action.payload;
+            return {
+                ...state,
+                passengers: state.passengers.map((p) => {
+                    if (p.id === passengerId) {
+                        return {
+                            ...p,
+                            assignedSeatId: null
+                        }
+                    }
+                })
+            }
         }
 
         default:
