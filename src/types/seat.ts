@@ -34,5 +34,5 @@ export interface Seat {
     col: string;
     category: SeatCategory;
     price: number;
-    isExitRow?: Boolean;
+    isExitRow?: boolean;
 }
