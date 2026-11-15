@@ -1,11 +1,15 @@
-import { useState } from 'react';
+// src/App.tsx
+
 import { AIRCRAFT_LAYOUT_CONFIGS, type LayoutType } from './types/layout';
 import { AirplaneCabin } from './components/airplane/AirplaneCabin';
 import { CabinLegend } from './components/airplane/CabinLegend';
+import { PassengerSelector } from './components/passengers/PassengerSelector';
+import { PassengerList } from './components/passengers/PassengerList';
+import { useBooking } from './store/BookingContext';
 
 function App() {
-  const [layoutType, setLayoutType] = useState<LayoutType>('3-2');
-  const currentConfig = AIRCRAFT_LAYOUT_CONFIGS[layoutType];
+  const { state, dispatch } = useBooking();
+  const currentConfig = AIRCRAFT_LAYOUT_CONFIGS[state.layoutType];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 antialiased font-sans flex flex-col">
@@ -21,21 +25,23 @@ function App() {
                 Flight Seat Selection
               </h1>
               <p className="text-xs text-slate-500">
-                Interactive Cabin Layout Preview
+                Select passengers and assign seats
               </p>
             </div>
           </div>
 
-          {/* Aircraft Layout Configuration Switcher */}
+          {/* Aircraft Layout Switcher */}
           <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-inner">
             {(Object.keys(AIRCRAFT_LAYOUT_CONFIGS) as LayoutType[]).map((key) => {
               const config = AIRCRAFT_LAYOUT_CONFIGS[key];
-              const isSelected = layoutType === key;
+              const isSelected = state.layoutType === key;
               return (
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setLayoutType(key)}
+                  onClick={() =>
+                    dispatch({ type: 'SET_LAYOUT', payload: key })
+                  }
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${isSelected
                     ? 'bg-white text-blue-600 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -49,33 +55,36 @@ function App() {
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 flex flex-col items-center">
-        {/* Aircraft Info Banner */}
-        <div className="w-full max-w-xl text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium mb-2">
-            <span>Model: {currentConfig.aircraftModel.toUpperCase()}</span>
-            <span>•</span>
-            <span>{currentConfig.totalRows} Rows</span>
-            <span>•</span>
-            <span>{currentConfig.groups.flat().length} Seats / Row</span>
+      {/* Main Content: Sidebar (Passengers) + Cabin */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+
+          {/* Left Sidebar: Passenger Controls */}
+          <aside className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
+            <PassengerSelector />
+            <PassengerList />
+          </aside>
+
+          {/* Right: Aircraft Cabin */}
+          <div className="flex-1 flex flex-col items-center">
+            {/* Info + Legend */}
+            <div className="w-full max-w-xl text-center mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium mb-2">
+                <span>Model: {currentConfig.aircraftModel.toUpperCase()}</span>
+                <span>•</span>
+                <span>{currentConfig.totalRows} Rows</span>
+                <span>•</span>
+                <span>{currentConfig.groups.flat().length} Seats / Row</span>
+              </div>
+            </div>
+
+            <div className="w-full max-w-xl mb-4">
+              <CabinLegend />
+            </div>
+
+            <AirplaneCabin config={currentConfig} />
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-            {currentConfig.name} Cabin
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Review the seating arrangement and seat categories below.
-          </p>
-        </div>
 
-        {/* Legend */}
-        <div className="w-full max-w-xl mb-4">
-          <CabinLegend />
-        </div>
-
-        {/* Render Airplane Cabin */}
-        <div className="w-full">
-          <AirplaneCabin config={currentConfig} />
         </div>
       </main>
 
