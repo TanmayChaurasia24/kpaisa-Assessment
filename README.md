@@ -159,18 +159,3 @@ npm run build
 ```
 Type-checks with `tsc -b` and bundles with Vite.
 
----
-
-## Deployment Instructions
-
-### Deploy to Vercel (Recommended)
-1. Push your code to a GitHub repository.
-2. Sign in to [Vercel](https://vercel.com/) and click **Add New Project**.
-3. Import your GitHub repository.
-4. Framework Preset will auto-detect as **Vite**.
-5. Click **Deploy**.
-
-### Deploy to GitHub Pages
-1. In `vite.config.ts`, add `base: '/<repo-name>/'`.
-2. Build the project: `npm run build`.
-3. Deploy the generated `dist/` directory using the `gh-pages` package or GitHub Actions.
