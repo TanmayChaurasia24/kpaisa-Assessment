@@ -13,19 +13,17 @@ export const CabinHeader: React.FC<CabinHeaderProps> = ({ config }) => {
 
         return (
           <React.Fragment key={groupIdx}>
-            {/* Seat Column Labels */}
             <div className="flex gap-1.5 md:gap-2">
               {group.map((col) => (
                 <div
                   key={col}
-                  className="w-9 md:w-10 text-center font-bold text-xs text-slate-500 uppercase tracking-wider"
+                  className="min-w-[38px] w-9 md:w-10 text-center font-bold text-xs text-slate-500 uppercase tracking-wider"
                 >
                   {col}
                 </div>
               ))}
             </div>
 
-            {/* Aisle Spacer */}
             {!isLastGroup && (
               <div className="w-8 md:w-10 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
                 {groupIdx === 0 ? 'Row' : ''}
@@ -37,4 +35,3 @@ export const CabinHeader: React.FC<CabinHeaderProps> = ({ config }) => {
     </div>
   );
 };
-

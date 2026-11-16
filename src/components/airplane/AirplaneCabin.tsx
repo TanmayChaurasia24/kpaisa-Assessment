@@ -3,6 +3,7 @@ import type { AircraftLayoutConfig } from '../../types/layout';
 import { generateSeatsForLayout } from '../../data/seat';
 import { OCCUPIED_SEATS } from '../../store/bookingstore';
 import { useBooking } from '../../store/BookingContext';
+import { useToast } from '../feedback/ToastContext';
 import { CabinHeader } from './CabinHeader';
 import { CabinRow } from './CabinRow';
 
@@ -12,6 +13,7 @@ interface AirplaneCabinProps {
 
 export const AirplaneCabin: React.FC<AirplaneCabinProps> = ({ config }) => {
   const { state, dispatch } = useBooking();
+  const { showToast } = useToast();
   const { passengers, activePassengerId, layoutType } = state;
 
   const seatMap = useMemo(() => {
@@ -26,7 +28,6 @@ export const AirplaneCabin: React.FC<AirplaneCabinProps> = ({ config }) => {
 
   const occupiedSeatIds = OCCUPIED_SEATS[layoutType];
 
-  // Map of seatId -> "P1", "P2"
   const assignmentMap = useMemo<Map<string, string>>(() => {
     const map = new Map<string, string>();
     passengers.forEach((p) => {
@@ -38,6 +39,11 @@ export const AirplaneCabin: React.FC<AirplaneCabinProps> = ({ config }) => {
     return map;
   }, [passengers]);
 
+  const activePassenger = useMemo(
+    () => passengers.find((p) => p.id === activePassengerId),
+    [passengers, activePassengerId]
+  );
+
   const activePassengerLabel = useMemo(() => {
     if (!activePassengerId) return '';
     return `P${activePassengerId.split('-')[1]}`;
@@ -45,29 +51,66 @@ export const AirplaneCabin: React.FC<AirplaneCabinProps> = ({ config }) => {
 
   const handleSeatClick = useCallback(
     (seatId: string) => {
+      if (!activePassengerId) {
+        showToast('Please select a passenger from the list first.', 'warning');
+        return;
+      }
+
+      if (occupiedSeatIds.has(seatId)) {
+        showToast(`Seat ${seatId} is already booked and unavailable.`, 'error');
+        return;
+      }
+
+      const takenBy = passengers.find(
+        (p) => p.assignedSeatId === seatId && p.id !== activePassengerId
+      );
+      if (takenBy) {
+        showToast(
+          `Seat ${seatId} is already held by ${takenBy.name}. Please select a different seat.`,
+          'warning'
+        );
+        return;
+      }
+
+      if (activePassenger?.assignedSeatId === seatId) {
+        dispatch({ type: 'ASSIGN_SEAT', payload: seatId });
+        showToast(`Seat ${seatId} unassigned from ${activePassenger.name}.`, 'info');
+        return;
+      }
+
       dispatch({ type: 'ASSIGN_SEAT', payload: seatId });
+      showToast(
+        `Seat ${seatId} successfully assigned to ${activePassenger?.name || activePassengerLabel}.`,
+        'success'
+      );
     },
-    [dispatch]
+    [
+      activePassenger,
+      activePassengerId,
+      activePassengerLabel,
+      dispatch,
+      occupiedSeatIds,
+      passengers,
+      showToast,
+    ]
   );
 
   return (
-    <div className="w-full flex flex-col items-center py-4 px-2 sm:px-4">
-      {/* Active Passenger Hint Bar */}
-      <div className="mb-4 text-xs font-medium text-slate-600 bg-blue-50 border border-blue-200 rounded-full px-4 py-1.5 shadow-xs flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+    <div className="w-full flex flex-col items-center py-4 px-1 sm:px-4">
+      <div className="mb-4 text-xs font-medium text-slate-600 bg-blue-50 border border-blue-200 rounded-full px-4 py-1.5 shadow-xs flex items-center gap-2 max-w-md text-center">
+        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
         {activePassengerId ? (
           <span>
             Clicking a seat assigns it to{' '}
             <strong className="text-blue-700">{activePassengerLabel}</strong> (or click your seat to unassign)
           </span>
         ) : (
-          <span>Select a passenger on the left to start assigning seats</span>
+          <span>Select a passenger from the list to assign seats</span>
         )}
       </div>
 
       <div className="w-full max-w-full overflow-x-auto pb-6 flex justify-center">
-        <div className="min-w-fit px-12 sm:px-14 flex flex-col items-center">
-          {/* Cockpit */}
+        <div className="min-w-fit px-8 sm:px-14 flex flex-col items-center">
           <div className="relative w-52 sm:w-60 h-24 bg-gradient-to-b from-slate-200 via-slate-100 to-white rounded-t-[120px] border-t-4 border-x-4 border-slate-300 flex flex-col items-center justify-center shadow-inner">
             <div className="flex gap-2.5 mb-1.5">
               <div className="w-6 h-3 bg-sky-900 rounded-tl-lg transform -rotate-12 border border-sky-950" />
@@ -79,8 +122,7 @@ export const AirplaneCabin: React.FC<AirplaneCabinProps> = ({ config }) => {
             </span>
           </div>
 
-          {/* Fuselage Body */}
-          <div className="relative bg-white border-x-4 border-slate-300 shadow-xl px-6 sm:px-10 py-5">
+          <div className="relative bg-white border-x-4 border-slate-300 shadow-xl px-5 sm:px-10 py-5">
             <CabinHeader config={config} />
 
             <div className="flex flex-col gap-1">
@@ -107,7 +149,6 @@ export const AirplaneCabin: React.FC<AirplaneCabinProps> = ({ config }) => {
             </div>
           </div>
 
-          {/* Tail */}
           <div className="w-36 h-10 bg-gradient-to-b from-white to-slate-200 border-b-4 border-x-4 border-slate-300 rounded-b-2xl flex items-center justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest shadow-xs">
             Aircraft Tail
           </div>
